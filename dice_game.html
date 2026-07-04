@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>骰子小游戏</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: #1f2937;
+      background: linear-gradient(135deg, #f7f7f2 0%, #c7d7c5 48%, #f2b880 100%);
+    }
+
+    .game {
+      width: min(94vw, 760px);
+      padding: 32px 24px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(31, 41, 55, 0.12);
+      border-radius: 8px;
+      box-shadow: 0 18px 45px rgba(31, 41, 55, 0.16);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+      text-align: left;
+    }
+
+    .hint {
+      margin: 0 0 24px;
+      color: #5b6472;
+      font-size: 15px;
+    }
+
+    .dice-button {
+      width: 168px;
+      height: 168px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 28px;
+      background: transparent;
+      cursor: pointer;
+      transition: transform 0.18s ease;
+    }
+
+    .dice-button:hover {
+      transform: translateY(-3px);
+    }
+
+    .dice-button:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    .dice-button:focus-visible,
+    .roll-action:focus-visible {
+      outline: 4px solid rgba(38, 132, 255, 0.38);
+      outline-offset: 5px;
+    }
+
+    .dice {
+      width: 150px;
+      height: 150px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 12px;
+      padding: 22px;
+      border-radius: 26px;
+      background: #fffdfa;
+      border: 2px solid #e2ded5;
+      box-shadow:
+        inset 0 -10px 18px rgba(31, 41, 55, 0.08),
+        0 16px 30px rgba(31, 41, 55, 0.2);
+    }
+
+    .dice.rolling {
+      animation: roll 0.58s ease-in-out;
+    }
+
+    .pip {
+      width: 24px;
+      height: 24px;
+      align-self: center;
+      justify-self: center;
+      border-radius: 50%;
+      background: #202936;
+      box-shadow: inset 0 3px 4px rgba(255, 255, 255, 0.18);
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.14s ease, transform 0.14s ease;
+    }
+
+    .pip.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .result {
+      min-height: 34px;
+      margin: 24px 0 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .count {
+      margin: 8px 0 0;
+      color: #5b6472;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    .roll-action {
+      min-width: 118px;
+      min-height: 42px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 7px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #2563eb;
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+
+    .roll-action.secondary {
+      background: #c2410c;
+    }
+
+    .roll-action:hover {
+      transform: translateY(-2px);
+      background: #1d4ed8;
+    }
+
+    .roll-action.secondary:hover {
+      background: #9a3412;
+    }
+
+    .roll-action:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+      transform: none;
+    }
+
+    .recent,
+    .stats {
+      margin-top: 30px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(31, 41, 55, 0.12);
+    }
+
+    .roll-list {
+      min-height: 76px;
+      display: grid;
+      grid-template-columns: repeat(10, minmax(46px, 1fr));
+      gap: 10px;
+      align-items: start;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      margin: 18px 0 0;
+      color: #6b7280;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .roll-item {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+      color: #4b5563;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mini-dice {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3px;
+      padding: 8px;
+      border: 1px solid #ded8cc;
+      border-radius: 10px;
+      background: #fffdfa;
+      box-shadow: 0 7px 14px rgba(31, 41, 55, 0.12);
+    }
+
+    .mini-dice .pip {
+      width: 8px;
+      height: 8px;
+      opacity: 0;
+      transform: scale(0.6);
+    }
+
+    .mini-dice .pip.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .stats-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .line-chart {
+      margin-bottom: 20px;
+      padding: 16px 12px 10px;
+      border: 1px solid rgba(31, 41, 55, 0.1);
+      border-radius: 8px;
+      background: rgba(255, 253, 250, 0.72);
+    }
+
+    .line-chart svg {
+      width: 100%;
+      height: 210px;
+      display: block;
+    }
+
+    .chart-grid-line {
+      stroke: #d8ddd2;
+      stroke-width: 1;
+    }
+
+    .chart-axis {
+      stroke: #8b9485;
+      stroke-width: 1.4;
+    }
+
+    .chart-line {
+      fill: none;
+      stroke: #dc2626;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chart-point {
+      fill: #ffffff;
+      stroke: #dc2626;
+      stroke-width: 3;
+    }
+
+    .chart-text {
+      fill: #4b5563;
+      font-size: 12px;
+      font-weight: 700;
+      text-anchor: middle;
+    }
+
+    .chart-value {
+      fill: #1f2937;
+      font-size: 12px;
+      font-weight: 800;
+      text-anchor: middle;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 56px 1fr 76px;
+      align-items: center;
+      gap: 12px;
+      min-height: 32px;
+      font-size: 14px;
+    }
+
+    .stat-label {
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .bar-track {
+      height: 18px;
+      overflow: hidden;
+      border-radius: 5px;
+      background: #eef0ea;
+    }
+
+    .bar-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #16a34a, #2563eb);
+      transition: width 0.22s ease;
+    }
+
+    .stat-count {
+      color: #4b5563;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    @keyframes roll {
+      0% {
+        transform: rotate(0deg) scale(1);
+      }
+      28% {
+        transform: rotate(16deg) scale(1.08);
+      }
+      56% {
+        transform: rotate(-18deg) scale(0.96);
+      }
+      100% {
+        transform: rotate(360deg) scale(1);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .game {
+        padding: 28px 18px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .roll-list {
+        grid-template-columns: repeat(5, minmax(46px, 1fr));
+      }
+
+      .stat-row {
+        grid-template-columns: 52px 1fr 68px;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <h1>骰子小游戏</h1>
+    <p class="hint">点击骰子或选择投掷次数</p>
+
+    <button class="dice-button" id="diceButton" type="button" aria-label="投掷骰子">
+      <span class="dice" id="dice" aria-hidden="true">
+        <span class="pip" data-position="top-left"></span>
+        <span class="pip" data-position="top-center"></span>
+        <span class="pip" data-position="top-right"></span>
+        <span class="pip" data-position="middle-left"></span>
+        <span class="pip" data-position="center"></span>
+        <span class="pip" data-position="middle-right"></span>
+        <span class="pip" data-position="bottom-left"></span>
+        <span class="pip" data-position="bottom-center"></span>
+        <span class="pip" data-position="bottom-right"></span>
+      </span>
+    </button>
+
+    <p class="result" id="result">当前点数：1</p>
+    <p class="count" id="count">已投掷 0 次</p>
+
+    <div class="actions" aria-label="投掷选项">
+      <button class="roll-action" id="rollOnce" type="button">投掷一次</button>
+      <button class="roll-action secondary" id="rollTen" type="button">投掷10次</button>
+    </div>
+
+    <section class="recent" aria-labelledby="recentTitle">
+      <h2 id="recentTitle">本轮10次结果</h2>
+      <div class="roll-list" id="rollList">
+        <p class="empty-state">点击“投掷10次”后，这里会显示每一次的骰子图片。</p>
+      </div>
+    </section>
+
+    <section class="stats" aria-labelledby="statsTitle">
+      <h2 id="statsTitle">累计统计</h2>
+      <div class="line-chart" id="lineChart" aria-label="1到6点投掷次数折线图"></div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </section>
+  </main>
+
+  <script>
+    const diceButton = document.querySelector("#diceButton");
+    const rollOnceButton = document.querySelector("#rollOnce");
+    const rollTenButton = document.querySelector("#rollTen");
+    const dice = document.querySelector("#dice");
+    const result = document.querySelector("#result");
+    const count = document.querySelector("#count");
+    const rollList = document.querySelector("#rollList");
+    const lineChart = document.querySelector("#lineChart");
+    const statsGrid = document.querySelector("#statsGrid");
+    const mainPips = [...dice.querySelectorAll(".pip")];
+
+    const faceMap = {
+      1: ["center"],
+      2: ["top-left", "bottom-right"],
+      3: ["top-left", "center", "bottom-right"],
+      4: ["top-left", "top-right", "bottom-left", "bottom-right"],
+      5: ["top-left", "top-right", "center", "bottom-left", "bottom-right"],
+      6: ["top-left", "middle-left", "bottom-left", "top-right", "middle-right", "bottom-right"]
+    };
+
+    const positions = [
+      "top-left",
+      "top-center",
+      "top-right",
+      "middle-left",
+      "center",
+      "middle-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right"
+    ];
+
+    const stats = [0, 0, 0, 0, 0, 0];
+    let rollCount = 0;
+    let isRollingBatch = false;
+
+    function randomFace() {
+      return Math.floor(Math.random() * 6) + 1;
+    }
+
+    function renderPips(pips, value) {
+      const visiblePositions = faceMap[value];
+
+      pips.forEach((pip) => {
+        pip.classList.toggle("show", visiblePositions.includes(pip.dataset.position));
+      });
+    }
+
+    function renderMainFace(value) {
+      renderPips(mainPips, value);
+    }
+
+    function animateMainDice() {
+      dice.classList.remove("rolling");
+      void dice.offsetWidth;
+      dice.classList.add("rolling");
+    }
+
+    function createMiniDice(value, index) {
+      const item = document.createElement("div");
+      item.className = "roll-item";
+
+      const miniDice = document.createElement("span");
+      miniDice.className = "mini-dice";
+      miniDice.setAttribute("aria-hidden", "true");
+
+      positions.forEach((position) => {
+        const pip = document.createElement("span");
+        pip.className = "pip";
+        pip.dataset.position = position;
+        miniDice.append(pip);
+      });
+
+      const label = document.createElement("span");
+      label.textContent = `第${index}次：${value}`;
+
+      item.append(miniDice, label);
+      renderPips([...miniDice.querySelectorAll(".pip")], value);
+
+      return item;
+    }
+
+    function renderStats() {
+      const maxCount = Math.max(...stats, 1);
+
+      renderLineChart(maxCount);
+      statsGrid.innerHTML = "";
+
+      stats.forEach((total, index) => {
+        const point = index + 1;
+        const percent = rollCount === 0 ? 0 : Math.round((total / rollCount) * 100);
+        const barWidth = Math.round((total / maxCount) * 100);
+        const row = document.createElement("div");
+        row.className = "stat-row";
+        row.innerHTML = `
+          <span class="stat-label">${point}点</span>
+          <span class="bar-track" aria-label="${point}点分布 ${percent}%">
+            <span class="bar-fill" style="width: ${barWidth}%"></span>
+          </span>
+          <span class="stat-count">${total}次 / ${percent}%</span>
+        `;
+        statsGrid.append(row);
+      });
+    }
+
+    function renderLineChart(maxCount) {
+      const width = 680;
+      const height = 210;
+      const padding = { top: 26, right: 24, bottom: 38, left: 34 };
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+      const xStep = chartWidth / 5;
+      const points = stats.map((total, index) => {
+        const x = padding.left + xStep * index;
+        const y = padding.top + chartHeight - (total / maxCount) * chartHeight;
+        return { point: index + 1, total, x, y };
+      });
+      const linePoints = points.map(({ x, y }) => `${x},${y}`).join(" ");
+      const gridLines = [0, 0.25, 0.5, 0.75, 1]
+        .map((ratio) => {
+          const y = padding.top + chartHeight * ratio;
+          return `<line class="chart-grid-line" x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}"></line>`;
+        })
+        .join("");
+      const pointNodes = points
+        .map(({ point, total, x, y }) => `
+          <circle class="chart-point" cx="${x}" cy="${y}" r="5"></circle>
+          <text class="chart-value" x="${x}" y="${Math.max(14, y - 10)}">${total}</text>
+          <text class="chart-text" x="${x}" y="${height - 12}">${point}点</text>
+        `)
+        .join("");
+
+      lineChart.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="1到6点投掷次数折线图">
+          ${gridLines}
+          <line class="chart-axis" x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}"></line>
+          <line class="chart-axis" x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}"></line>
+          <polyline class="chart-line" points="${linePoints}"></polyline>
+          ${pointNodes}
+        </svg>
+      `;
+    }
+
+    function recordRoll(value) {
+      rollCount += 1;
+      stats[value - 1] += 1;
+      renderMainFace(value);
+      result.textContent = `当前点数：${value}`;
+      count.textContent = `已投掷 ${rollCount} 次`;
+      renderStats();
+    }
+
+    function rollOnce() {
+      const value = randomFace();
+      animateMainDice();
+      recordRoll(value);
+      return value;
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    async function rollTen() {
+      if (isRollingBatch) {
+        return;
+      }
+
+      isRollingBatch = true;
+      diceButton.disabled = true;
+      rollOnceButton.disabled = true;
+      rollTenButton.disabled = true;
+      rollList.innerHTML = "";
+
+      for (let index = 1; index <= 10; index += 1) {
+        const value = rollOnce();
+        rollList.append(createMiniDice(value, index));
+        await sleep(180);
+      }
+
+      isRollingBatch = false;
+      diceButton.disabled = false;
+      rollOnceButton.disabled = false;
+      rollTenButton.disabled = false;
+    }
+
+    diceButton.addEventListener("click", rollOnce);
+    rollOnceButton.addEventListener("click", rollOnce);
+    rollTenButton.addEventListener("click", rollTen);
+
+    renderMainFace(1);
+    renderStats();
+  </script>
+</body>
+</html>
